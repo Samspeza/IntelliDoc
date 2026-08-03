@@ -1,0 +1,12 @@
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\bin\Debug\net9.0\IntelliDoc.Domain.deps.json
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\bin\Debug\net9.0\IntelliDoc.Domain.dll
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\bin\Debug\net9.0\IntelliDoc.Domain.pdb
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.AssemblyInfoInputs.cache
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.AssemblyInfo.cs
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.csproj.CoreCompileInputs.cache
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.sourcelink.json
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.dll
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\refint\IntelliDoc.Domain.dll
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\IntelliDoc.Domain.pdb
+C:\Users\sanvi\Documents\GitHub\IntelliDoc\backend\src\IntelliDoc.Domain\obj\Debug\net9.0\ref\IntelliDoc.Domain.dll

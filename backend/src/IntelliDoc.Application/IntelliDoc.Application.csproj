@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>IntelliDoc.Application</RootNamespace>
+    <AssemblyName>IntelliDoc.Application</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <!-- CQRS: Commands/Queries + Pipeline Behaviors -->
+    <PackageReference Include="MediatR" Version="12.4.1" />
+    <!-- Validação declarativa dos Commands/Queries, integrada via ValidationBehavior -->
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.10.0" />
+    <!-- Mapeamento Entity <-> DTO -->
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <!-- Abstração de logging (implementação Serilog fica na Infrastructure/Api) -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <!-- Apenas para tipar DbSet<T> na interface IApplicationDbContext; a
+         implementação concreta (provider Npgsql, configurações, migrations)
+         fica inteiramente em Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Única dependência de projeto permitida: aponta para dentro (Domain) -->
+    <ProjectReference Include="..\IntelliDoc.Domain\IntelliDoc.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
