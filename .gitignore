@@ -1,11 +1,19 @@
+# Build
 **/bin/
 **/obj/
-
 bin/
 obj/
 
+# Visual Studio
 .vs/
-.idea/
-
 *.user
 *.suo
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
