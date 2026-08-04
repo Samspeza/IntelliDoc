@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>IntelliDoc.Infrastructure</RootNamespace>
+    <AssemblyName>IntelliDoc.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- Provider PostgreSQL (decisão: PostgreSQL, Etapa 6) -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <!-- ASP.NET Core Identity para hashing/políticas de senha (Etapa 4, §6) -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+    <!-- JWT -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <!-- Fila de background jobs (decisão: Hangfire, Etapa 4 §3) -->
+    <PackageReference Include="Hangfire.Core" Version="1.8.14" />
+    <PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
+    <!-- Cache distribuído (Redis, Etapa 4 §8) -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
+    <!-- Logging estruturado -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <!-- Envio de e-mail -->
+    <PackageReference Include="MailKit" Version="4.8.0" />
+    <!-- IHttpContextAccessor para CurrentUserService ler claims do JWT -->
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+    <!-- OCR (implementação padrão de IDocumentExtractionService) -->
+    <PackageReference Include="Tesseract" Version="5.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Aponta apenas para dentro: Application (que já referencia Domain) -->
+    <ProjectReference Include="..\IntelliDoc.Application\IntelliDoc.Application.csproj" />
+  </ItemGroup>
+
+</Project>
