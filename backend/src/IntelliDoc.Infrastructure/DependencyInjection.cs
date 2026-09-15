@@ -53,6 +53,8 @@ public static class DependencyInjection
         services.AddScoped<IDocumentExtractionService, TesseractExtractionService>();
         services.AddSingleton<AiFieldParsingService>();
         services.AddSingleton<JwtTokenService>();
+        services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
+        services.AddScoped<ITokenService, TokenService>();
 
         services.Configure<Identity.JwtSettings>(configuration.GetSection(Identity.JwtSettings.SectionName));
         services.Configure<LocalStorageSettings>(configuration.GetSection(LocalStorageSettings.SectionName));

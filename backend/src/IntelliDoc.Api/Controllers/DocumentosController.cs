@@ -1,44 +1,56 @@
 using IntelliDoc.Application.Documentos.Commands.UploadDocumento;
-using MediatR;
+using IntelliDoc.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IntelliDoc.Api.Controllers;
 
 /// <summary>
-/// Endpoints do módulo Documentos. Cada action mapeia diretamente a um
-/// Command/Query do IntelliDoc.Application (Etapa 3, tabela "Mapeamento
-/// Caso de Uso -> Camada de Aplicação"). O Controller não contém NENHUMA
-/// lógica de negócio - apenas traduz HTTP <-> MediatR.
+/// Endpoints do módulo de Documentos. Nesta sub-etapa expõe apenas o UC13
+/// (upload); os demais casos de uso do módulo (UC15-UC18, UC19-UC23) serão
+/// adicionados junto com seus respectivos Commands/Queries nas próximas
+/// sub-etapas.
 /// </summary>
-[ApiController]
-[Route("api/documentos")]
-[Authorize] // exige JWT válido; checagem de PAPEL específico fica em cada Handler
-public sealed class DocumentosController(IMediator mediator) : ControllerBase
+[Authorize]
+public sealed class DocumentosController : ApiControllerBase
 {
-    /// <summary>UC13: upload de um documento (multipart/form-data).</summary>
-    /// <response code="201">Documento recebido e enfileirado para processamento.</response>
-    /// <response code="400">Arquivo inválido (tipo não aceito ou acima de 10MB - RN11).</response>
+    /// <summary>
+    /// UC13: faz upload de um documento para processamento assíncrono.
+    /// Retorna 202 Accepted (não 201 Created) porque o recurso ainda NÃO
+    /// está em seu estado final - o OCR/IA roda de forma assíncrona no
+    /// Worker, e o cliente deve consultar o status depois (RF11). Este é o
+    /// código semanticamente correto para processamento assíncrono.
+    /// </summary>
     [HttpPost]
-    [RequestSizeLimit(10 * 1024 * 1024)] // RN11 - reforça em nível de infraestrutura HTTP o limite já validado no Command
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [Authorize(Roles = $"{nameof(PapelUsuario.Operador)},{nameof(PapelUsuario.AdminEmpresa)},{nameof(PapelUsuario.Gestor)}")]
+    [RequestSizeLimit(10 * 1024 * 1024)] // RN11 - 10MB, barrado antes de carregar o corpo inteiro
+    [ProducesResponseType(typeof(UploadDocumentoResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Upload(IFormFile arquivo, CancellationToken cancellationToken)
     {
-        var extensao = Path.GetExtension(arquivo.FileName).TrimStart('.').ToLowerInvariant();
+        if (arquivo is null || arquivo.Length == 0)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Arquivo obrigatório",
+                Detail = "Nenhum arquivo foi enviado na requisição.",
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
 
         await using var stream = arquivo.OpenReadStream();
 
-        var command = new UploadDocumentoCommand(
-            stream,
-            arquivo.FileName,
-            extensao,
-            arquivo.Length);
+        var tipoArquivo = Path.GetExtension(arquivo.FileName).TrimStart('.').ToLowerInvariant();
 
-        var documentoId = await mediator.Send(command, cancellationToken);
+        var documentoId = await Mediator.Send(
+            new UploadDocumentoCommand(stream, arquivo.FileName, tipoArquivo, arquivo.Length),
+            cancellationToken);
 
-        // TODO(Etapa 9.8): trocar por CreatedAtAction apontando para
-        // ObterDocumentoPorId (UC15) assim que esse endpoint existir.
-        return Created($"/api/documentos/{documentoId}", new { id = documentoId });
+        return Accepted(new UploadDocumentoResponse(documentoId, "Documento recebido e enfileirado para processamento."));
     }
 }
+
+/// <summary>Resposta do upload (UC13) - o status é consultado separadamente via UC15.</summary>
+public sealed record UploadDocumentoResponse(Guid DocumentoId, string Mensagem);

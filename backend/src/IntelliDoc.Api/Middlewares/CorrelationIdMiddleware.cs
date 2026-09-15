@@ -3,13 +3,15 @@ using Serilog.Context;
 namespace IntelliDoc.Api.Middlewares;
 
 /// <summary>
-/// Gera (ou reaproveita, se o cliente já enviou) um X-Correlation-Id por
-/// requisição e o injeta no contexto de log do Serilog via LogContext -
-/// todo log emitido durante o processamento desta requisição (Api, EF Core,
-/// Behaviors do MediatR) passa a incluir esse Id automaticamente,
-/// viabilizando rastrear uma requisição de ponta a ponta nos logs
-/// (RNF05, docs/04-arquitetura.md §7).
-/// Registrado bem no início da pipeline, em Program.cs.
+/// Gera (ou reaproveita, se o cliente já enviou) um identificador de
+/// correlação por requisição, propagando-o no header de resposta
+/// X-Correlation-Id e no contexto de log do Serilog (RNF05,
+/// docs/04-arquitetura.md §7).
+///
+/// Resultado prático: toda linha de log emitida durante uma requisição -
+/// incluindo as emitidas pelos Pipeline Behaviors do MediatR (Etapa 9.3) -
+/// carrega o mesmo CorrelationId, permitindo reconstruir o caminho completo
+/// de uma requisição problemática nos logs agregados.
 /// </summary>
 public sealed class CorrelationIdMiddleware(RequestDelegate next)
 {
@@ -18,12 +20,15 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext context)
     {
         var correlationId = context.Request.Headers.TryGetValue(HeaderName, out var valorExistente)
-            ? valorExistente.ToString()
-            : Guid.NewGuid().ToString();
+            && !string.IsNullOrWhiteSpace(valorExistente)
+                ? valorExistente.ToString()
+                : Guid.NewGuid().ToString();
 
+        context.TraceIdentifier = correlationId;
         context.Response.Headers[HeaderName] = correlationId;
 
         using (LogContext.PushProperty("CorrelationId", correlationId))
+        using (LogContext.PushProperty("EmpresaId", context.User.FindFirst("empresa_id")?.Value ?? "-"))
         {
             await next(context);
         }

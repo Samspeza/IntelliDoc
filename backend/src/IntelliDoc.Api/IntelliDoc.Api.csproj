@@ -1,25 +1,34 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>IntelliDoc.Api</RootNamespace>
     <AssemblyName>IntelliDoc.Api</AssemblyName>
     <UserSecretsId>intellidoc-api-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <!-- Documentação OpenAPI (RNF02) -->
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <!-- Logging estruturado (RNF05) -->
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+    <!-- Dashboard de monitoramento dos jobs (Etapa 4 §7) -->
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
+    <!-- Health checks de banco e Redis -->
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.14" />
+    <!-- Migrations aplicadas no startup em Development -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Aponta apenas para dentro: Infrastructure (que já referencia
-         Application, que já referencia Domain) -->
     <ProjectReference Include="..\IntelliDoc.Infrastructure\IntelliDoc.Infrastructure.csproj" />
+    <ProjectReference Include="..\IntelliDoc.Application\IntelliDoc.Application.csproj" />
   </ItemGroup>
 
 </Project>

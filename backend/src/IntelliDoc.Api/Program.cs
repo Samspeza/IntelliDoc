@@ -1,112 +1,121 @@
-using Hangfire;
-using Hangfire.Dashboard;
+using IntelliDoc.Api.Authorization;
+using IntelliDoc.Api.Extensions;
 using IntelliDoc.Api.Middlewares;
 using IntelliDoc.Application;
 using IntelliDoc.Infrastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
+using IntelliDoc.Infrastructure.Persistence;
+using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog (RNF05, docs/04-arquitetura.md 7)
-builder.Host.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
+// ---------------------------------------------------------------------------
+// Logging estruturado (RNF05, docs/04-arquitetura.md §7)
+// ---------------------------------------------------------------------------
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .Enrich.WithProperty("Processo", "Api")
-    .WriteTo.Console());
+    .WriteTo.Console()
+    .CreateLogger();
 
+builder.Host.UseSerilog();
 
+// ---------------------------------------------------------------------------
+// Camadas da aplicação (Clean Architecture, Etapa 4)
+// ---------------------------------------------------------------------------
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddInfrastructureAuth(builder.Configuration);
-// Nota: AddWorkerHangfireServer() NÃO é chamado aqui - a Api enfileira e
-// visualiza jobs, mas nunca os processa (Etapa 9.6).
+// NOTA: AddWorkerHangfireServer() NÃO é chamado aqui de propósito - a Api
+// apenas ENFILEIRA jobs; quem os processa é o Worker (Etapa 9.6).
 
-// Controllers + Swagger/OpenAPI (RNF02)
+// ---------------------------------------------------------------------------
+// Infraestrutura web
+// ---------------------------------------------------------------------------
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "IntelliDoc API",
-        Version = "v1",
-        Description = "Plataforma de processamento inteligente de documentos com OCR/IA e fluxo de aprovação."
-    });
+builder.Services.AddSwaggerComJwt();
+builder.Services.AddCorsFrontend(builder.Configuration);
+builder.Services.AddRateLimitingAuth();
+builder.Services.AddProblemDetails();
 
-    var jwtScheme = new OpenApiSecurityScheme
-    {
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Description = "Informe: Bearer {seu token}"
-    };
-    options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, jwtScheme);
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = JwtBearerDefaults.AuthenticationScheme } }, [] }
-    });
-});
-
-
-// CORS 
-const string CorsPolicyFrontend = "FrontendPolicy";
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(CorsPolicyFrontend, policy => policy
-        .WithOrigins(builder.Configuration.GetSection("Cors:OrigensPermitidas").Get<string[]>() ?? [])
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials());
-});
-
-// ---------------------------------------------------------------------
-// Health Checks (RNF05) - banco, Redis e a própria Api
-// ---------------------------------------------------------------------
 builder.Services.AddHealthChecks()
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "postgresql")
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!, name: "postgres")
     .AddRedis(builder.Configuration.GetConnectionString("Redis")!, name: "redis");
 
 var app = builder.Build();
 
-// ---------------------------------------------------------------------
-// Pipeline
-// ---------------------------------------------------------------------
-app.UseMiddleware<CorrelationIdMiddleware>();
+// ---------------------------------------------------------------------------
+// Migrations automáticas apenas em Development (em produção, migrations são
+// aplicadas explicitamente no pipeline de CI/CD - Etapa 15 - para evitar que
+// duas réplicas da Api tentem migrar o banco simultaneamente no startup).
+// ---------------------------------------------------------------------------
+if (app.Environment.IsDevelopment())
+{
+    using var escopo = app.Services.CreateScope();
+    var dbContext = escopo.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline HTTP - a ORDEM importa
+// ---------------------------------------------------------------------------
+
+// 1. Exceções primeiro: precisa envolver todo o resto do pipeline para
+//    capturar qualquer falha, inclusive de middlewares posteriores.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// 2. Correlação: logo em seguida, para que todo log subsequente já carregue
+//    o CorrelationId.
+app.UseMiddleware<CorrelationIdMiddleware>();
+
+app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "IntelliDoc API v1"));
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "IntelliDoc API v1");
+        options.DocumentTitle = "IntelliDoc API";
+    });
 }
 
 app.UseHttpsRedirection();
-app.UseCors(CorsPolicyFrontend);
+app.UseCors(IntelliDoc.Api.Extensions.ServiceCollectionExtensions.PoliticaCorsFrontend);
+
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-// Dashboard do Hangfire (RNF05) - protegido: só usuários autenticados com
-// papel AdminEmpresa ou SuperAdmin podem visualizar (filtro customizado
-// seria adicionado em Extensions/; simplificado aqui para .RequireAuthorization()).
-app.MapHangfireDashboard("/hangfire", new DashboardOptions
+// Dashboard de jobs, protegido (Etapa 4 §7) - somente SuperAdmin/AdminEmpresa.
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
-    Authorization = [new HangfireAuthorizationFilterPlaceholder()]
-}).RequireAuthorization();
+    Authorization = [new HangfireAuthorizationFilter()]
+});
 
-app.Run();
-
-// Placeholder mínimo - a Etapa 9.8+ pode substituir por um filtro real que
-// valida o papel do usuário (AdminEmpresa/SuperAdmin) antes de autorizar o
-// dashboard; por ora, delega inteiramente para [Authorize] via
-// RequireAuthorization() acima, que já exige um JWT válido.
-sealed class HangfireAuthorizationFilterPlaceholder : IDashboardAuthorizationFilter
+try
 {
-    public bool Authorize(DashboardContext context) => true;
+    Log.Information("IntelliDoc.Api iniciando...");
+    await app.RunAsync();
 }
+catch (Exception ex)
+{
+    Log.Fatal(ex, "A API encerrou de forma inesperada.");
+    throw;
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
+
+/// <summary>
+/// Exposto como public partial para permitir que os testes de integração
+/// (IntelliDoc.IntegrationTests, Etapa 13) instanciem a aplicação via
+/// WebApplicationFactory&lt;Program&gt;.
+/// </summary>
+public partial class Program;
