@@ -1,4 +1,5 @@
-# Build
+
+# .NET / C#
 **/bin/
 **/obj/
 bin/
@@ -15,5 +16,32 @@ obj/
 # VS Code
 .vscode/
 
+
+# Node.js / Frontend
+
+**/node_modules/
+node_modules/
+
+# Build frontend
+**/dist/
+dist/
+
+# Vite
+.vite/
+
+# Environment variables
+
+.env
+.env.local
+.env.*.local
+
+!.env.example
+
 # Logs
+
 *.log
+
+# Sistema operacional
+
+.DS_Store
+Thumbs.db
