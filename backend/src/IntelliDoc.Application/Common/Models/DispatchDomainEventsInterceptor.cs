@@ -1,22 +1,10 @@
+using IntelliDoc.Application.Common.Models;
 using IntelliDoc.Domain.Common;
-using IntelliDoc.Domain.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace IntelliDoc.Infrastructure.Persistence.Interceptors;
-
-/// <summary>
-/// Wrapper que adapta um IDomainEvent (definido no Domain, sem dependência
-/// de MediatR - Etapa 9.1) para INotification (contrato do MediatR), usado
-/// apenas dentro da Infrastructure. Handlers na Application escutam
-/// DomainEventNotification&lt;DocumentoAprovadoEvent&gt;, por exemplo.
-/// </summary>
-public sealed class DomainEventNotification<TDomainEvent>(TDomainEvent domainEvent) : INotification
-    where TDomainEvent : IDomainEvent
-{
-    public TDomainEvent DomainEvent { get; } = domainEvent;
-}
 
 /// <summary>
 /// Despacha os eventos de domínio (DocumentoAprovadoEvent,
@@ -27,6 +15,13 @@ public sealed class DomainEventNotification<TDomainEvent>(TDomainEvent domainEve
 /// no banco, garantindo que um handler de notificação (UC30) nunca reaja a
 /// uma aprovação que acabou sendo revertida por outra falha na mesma
 /// transação.
+///
+/// CORREÇÃO (Etapa 9.10): DomainEventNotification&lt;T&gt; foi movida para
+/// IntelliDoc.Application.Common.Models - definir esse wrapper aqui, em
+/// Infrastructure, obrigaria os handlers de evento (Application) a
+/// referenciar Infrastructure para conseguir implementar
+/// INotificationHandler&lt;DomainEventNotification&lt;T&gt;&gt;, violando a
+/// regra de dependência da Clean Architecture (Etapa 4).
 /// </summary>
 public sealed class DispatchDomainEventsInterceptor(IPublisher publisher) : SaveChangesInterceptor
 {
