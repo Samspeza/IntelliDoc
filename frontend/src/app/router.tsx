@@ -2,15 +2,17 @@ import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom"
 import { AuthLayout } from "@/shared/layouts/AuthLayout";
 import { AppLayout } from "@/shared/layouts/AppLayout";
 import { RotaProtegida } from "@/shared/components/RotaProtegida";
+import LoginPage from "@/features/auth/pages/LoginPage";
+import RegisterPage from "@/features/auth/pages/RegisterPage";
+import ForgotPasswordPage from "@/features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/features/auth/pages/ResetPasswordPage";
 
 /**
- * PLACEHOLDER temporário: cada uma destas telas será substituída pela
- * página real da respectiva feature nas próximas sub-etapas (10.2 em
- * diante - features/auth, features/documentos, features/aprovacao,
- * features/dashboard, etc., conforme a estrutura definida na Etapa 5).
- * Mantê-las aqui, inline, permite que o router e a navegação da sidebar
- * (AppLayout, Etapa 10.1) já sejam testáveis nesta sub-etapa, sem depender
- * de features que ainda não existem.
+ * PLACEHOLDER temporário: as páginas dos módulos ainda não implementados
+ * (Documentos, Aprovação, Dashboard, Administração, Notificações,
+ * Auditoria, Perfil) serão substituídas pelas páginas reais nas próximas
+ * sub-etapas. A feature `auth` (Etapa 10.2) já não usa mais este
+ * placeholder - ver as rotas de autenticação abaixo.
  */
 function PlaceholderPagina({ titulo }: { titulo: string }) {
   return (
@@ -24,10 +26,10 @@ const router = createBrowserRouter([
   {
     element: <AuthLayout />,
     children: [
-      { path: "/login", element: <PlaceholderPagina titulo="Login" /> },
-      { path: "/registrar", element: <PlaceholderPagina titulo="Registrar Empresa" /> },
-      { path: "/esqueci-senha", element: <PlaceholderPagina titulo="Recuperar Senha" /> },
-      { path: "/redefinir-senha", element: <PlaceholderPagina titulo="Redefinir Senha" /> }
+      { path: "/login", element: <LoginPage /> },
+      { path: "/registrar", element: <RegisterPage /> },
+      { path: "/esqueci-senha", element: <ForgotPasswordPage /> },
+      { path: "/redefinir-senha", element: <ResetPasswordPage /> }
     ]
   },
   {
